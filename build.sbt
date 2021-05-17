@@ -1,10 +1,15 @@
-import sbt.Keys._
-import sbt._
 
 lazy val commonSettings = Seq(
+  resolvers in Global ++= {
+    Seq(
+      "sonatype snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+      Resolver.mavenCentral
+
+    )
+  },
   name := "http-client",
   organization := "com.walkmind.extensions",
-  version := "1.8",
+  version := "1.9",
 
   licenses := Seq("Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0")),
   scalacOptions := Seq(
@@ -16,7 +21,7 @@ lazy val commonSettings = Seq(
     "-language:higherKinds",
     "-Xcheckinit"),
 
-  scalaVersion := "2.12.13",
+  scalaVersion := "2.13.5",
   crossScalaVersions := Seq("2.12.13", "2.13.5")
 )
 
@@ -42,17 +47,17 @@ lazy val root = (project in file(".")).
   settings(
     libraryDependencies ++= {
       Seq(
-        "com.typesafe.akka" %% "akka-stream" % "2.6.3",
-        "com.typesafe.akka" %% "akka-http" % "10.1.11",
+        "com.typesafe.akka" %% "akka-stream" % "2.6.14",
+        "com.typesafe.akka" %% "akka-http" % "10.2.4",
 
-        "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.4",
+        "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.4",
 
-        "io.spray" %% "spray-json" % "1.3.5",
+        "io.spray" %% "spray-json" % "1.3.6",
         "org.jsoup" % "jsoup" % "1.13.1",
-        "org.asynchttpclient" % "async-http-client" % "2.11.0",
+        "org.asynchttpclient" % "async-http-client" % "2.12.3",
 
-        "org.typelevel" %% "cats-core" % "2.1.1",
-        "org.typelevel" %% "cats-effect" % "2.1.2"
+        "org.typelevel" %% "cats-core" % "2.6.0",
+        "org.typelevel" %% "cats-effect" % "3.1.1"
       )
     }
   )

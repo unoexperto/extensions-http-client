@@ -7,8 +7,9 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, MergeHub, Sink, Source}
 import cats.Applicative
-import cats.effect.concurrent.Deferred
-import cats.effect.{ContextShift, IO}
+import cats.effect.kernel.Deferred
+import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 
 import scala.collection.compat._
 import scala.concurrent.duration.FiniteDuration
@@ -16,8 +17,6 @@ import scala.util.Try
 
 class AkkaHttpWrapper(flow: Flow[(HttpRequest, Deferred[IO, Try[HttpResponse]]), (Try[HttpResponse], Deferred[IO, Try[HttpResponse]]), _],
                       fetchingTimeout: FiniteDuration)(implicit mat: Materializer) {
-
-  private implicit val cs: ContextShift[IO] = IO.contextShift(mat.executionContext)
 
   private val completionSink: Sink[(HttpRequest, Deferred[IO, Try[HttpResponse]]), NotUsed] =
     MergeHub.source[(HttpRequest, Deferred[IO, Try[HttpResponse]])]
@@ -42,7 +41,7 @@ class AkkaHttpWrapper(flow: Flow[(HttpRequest, Deferred[IO, Try[HttpResponse]]),
     }
 
     try {
-      val defer = Deferred.unsafeUncancelable[IO, Try[HttpResponse]]
+      val defer = Deferred.unsafe[IO, Try[HttpResponse]]
       Source.single(request -> defer).runWith(completionSink)
       defer.get
         .flatMap(IO.fromTry)
@@ -71,7 +70,7 @@ class AkkaHttpWrapper(flow: Flow[(HttpRequest, Deferred[IO, Try[HttpResponse]]),
               um.handleResponseException[T](ex -> req)
           }
         }
-        .flatMap(IO.fromTry)
+        .flatMap(IO.fromTry _)
     } catch {
       case ex: Throwable =>
         IO.fromTry(um.handleResponseException[T](ex -> req))

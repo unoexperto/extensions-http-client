@@ -2,11 +2,12 @@ package com.walkmind.http
 
 import cats.Applicative
 import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 import org.asynchttpclient.request.body.multipart.StringPart
 import org.asynchttpclient.{AsyncHttpClientConfig, BoundRequestBuilder, DefaultAsyncHttpClient, DefaultAsyncHttpClientConfig, Request}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.higherKinds
+//import scala.language.higherKinds
 
 @deprecated(message = "Use AHCExtension and RequestBuilderBaseExt extension directly with AsyncHttpClient", since = "2.34")
 class AHCWrapper(baseUrl: Option[String] = None,

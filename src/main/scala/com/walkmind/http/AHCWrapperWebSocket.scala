@@ -1,7 +1,7 @@
 package com.walkmind.http
 
 import akka.stream.scaladsl.Source
-import akka.stream.{KillSwitch, OverflowStrategy}
+import akka.stream.{CompletionStrategy, KillSwitch, OverflowStrategy}
 import org.asynchttpclient.netty.ws.NettyWebSocket
 import org.asynchttpclient.ws.{WebSocket, WebSocketListener, WebSocketUpgradeHandler}
 import org.reactivestreams.{Publisher, Subscriber}
@@ -18,7 +18,16 @@ trait AHCWrapperWebSocket {
   this: AHCWrapperBase =>
 
   def createWsObservable3(url: String, onStartAction: WebSocket => Option[KillSwitch] = _ => None, bufferSize: Int = 32)(implicit ec: ExecutionContext): Source[WsMessage, KillSwitch] = {
-    val actorSource = Source.actorRef[WsMessage](bufferSize, OverflowStrategy.fail)
+    val completionMatcher: PartialFunction[Any, CompletionStrategy] = {
+      case akka.actor.Status.Success(s: CompletionStrategy) => s
+      case akka.actor.Status.Success(_)                     => CompletionStrategy.draining
+      case akka.actor.Status.Success                        => CompletionStrategy.draining
+    }
+    val failureMatcher: PartialFunction[Any, Throwable] = {
+      case akka.actor.Status.Failure(cause) => cause
+    }
+    val actorSource = Source.actorRef[WsMessage](
+      completionMatcher, failureMatcher, bufferSize, OverflowStrategy.fail)
     actorSource.mapMaterializedValue { actor =>
       val listener: WebSocketListener = new WebSocketListener() {
         private val byteBuffer = new ArrayBuffer[Byte]()
