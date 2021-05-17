@@ -4,7 +4,7 @@ import java.nio.charset.Charset
 import java.util.concurrent.CompletableFuture
 
 import cats.Applicative
-import cats.effect.{Async, IO}
+import cats.effect.kernel.Async
 import cats.implicits._
 import io.netty.handler.codec.http.cookie.DefaultCookie
 import io.netty.util
@@ -17,7 +17,7 @@ import org.jsoup.nodes.Document.OutputSettings.Syntax
 import org.jsoup.nodes.Entities.EscapeMode
 import spray.json.{JsValue, JsonParser, JsonReader, ParserInput}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Right, Success, Try}
@@ -25,14 +25,14 @@ import scala.util.{Failure, Right, Success, Try}
 //noinspection ConvertExpressionToSAM
 package object http {
   def completableToAsync[F[_], T](f: => CompletableFuture[T])(implicit ce: Async[F]): F[T] =
-    ce.onCancel(ce.async[T] { k =>
+    ce.onCancel(ce.async_[T] { k =>
       f.whenCompleteAsync((value: T, ex: Throwable) => {
         if (ex != null)
           k.apply(Left(ex))
         else
           k.apply(Right(value))
       })
-    })(ce.delay(f.cancel(true)))
+    }, ce.delay(f.cancel(true)))
 
   implicit def wrapPromise[T](p: Promise[T]): FutureListener[T] =
     (future: util.concurrent.Future[T]) =>
@@ -54,7 +54,7 @@ package object http {
   }
 
   implicit def wrapNettyFuture[T](f: util.concurrent.Future[T]): Future[T] = {
-    val p = Promise[T]
+    val p = Promise[T]()
     f.addListener(wrapPromise(p))
     p.future
   }
@@ -126,7 +126,7 @@ package object http {
                 um.handleResponseException[T](ex -> req)
             }
           }
-          .flatMap(as.fromTry)
+          .flatMap(as.fromTry _)
       } catch {
         case ex: Throwable =>
           as.fromTry(um.handleResponseException[T](ex -> req))
